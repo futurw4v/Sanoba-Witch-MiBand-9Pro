@@ -1,0 +1,243 @@
+<template>
+  <div class="page">
+    <div class="header">
+      <text class="title">{{ incomingState ? "保存" : "读取" }}</text>
+    </div>
+
+    <!-- 滚动区域 -->
+    <scroll scroll-y="true" class="scroll-container">
+      <div
+        for="{{ (index, item) in saves }}"
+        class="slot-wrapper"
+        @click="handleClick(index)"
+        @longpress="handleDelete(index)"
+      >
+        <div class="card {{ item ? 'full' : 'empty' }}">
+          <div if="{{ item }}" class="card-content">
+            <text class="chap-name">{{ item.chapterName }}</text>
+            <text class="prev-text">{{ item.preview }}</text>
+            <text class="date-text">{{ item.date }}</text>
+          </div>
+
+          <!-- 空存档的加号 -->
+          <text else style="color: #ffffff; font-size: 50px; line-height: 50px">+</text>
+        </div>
+      </div>
+    </scroll>
+
+    <div class="footer-bar" @click="goBack">
+      <text class="footer-text">返回</text>
+    </div>
+  </div>
+</template>
+
+<script>
+import storage from "@system.storage"
+import router from "@system.router"
+import prompt from "@system.prompt"
+
+const SAVE_KEY = "user_save_data"
+
+export default {
+  // 从路由参数接收当前游戏状态（用于保存时使用）
+  protected: {
+    currentState: null
+  },
+
+  private: {
+    saves: [null, null, null, null, null, null, null, null],
+    incomingState: null
+  },
+
+  onInit() {
+    if (this.currentState) {
+      try {
+        this.incomingState =
+          typeof this.currentState === "string" ? JSON.parse(this.currentState) : this.currentState
+      } catch (e) {
+        this.incomingState = null
+      }
+    }
+
+    this.initData()
+  },
+
+  // 初始化：从 storage 读取存档信息并填充saves
+  initData() {
+    storage.get({
+      key: SAVE_KEY,
+      success: (data) => {
+        if (data) {
+          const arr = JSON.parse(data)
+          for (let i = 0; i < 8; i++) {
+            if (arr[i]) this.saves.splice(i, 1, arr[i])
+          }
+        }
+      }
+    })
+  },
+
+  // 点击存档：有 incomingState 则保存，否则加载
+  handleClick(index) {
+    if (this.incomingState) {
+      this.doSave(index)
+    } else if (this.saves[index]) {
+      this.doLoad(index)
+    } else {
+      prompt.showToast({message: "存档位为空"})
+    }
+  },
+
+  doSave(index) {
+    if (!this.incomingState) return
+
+    // 若文字过长(rawText.length > 15)就截断显示并添加...
+    const rawText = this.incomingState.fullText
+    let previewContent = "..."
+
+    if (this.incomingState.fullText) {
+      previewContent = rawText.length > 15 ? rawText.substring(0, 15) + "..." : rawText
+    }
+
+    // 时间
+    const now = new Date()
+
+    const month = now.getMonth() + 1
+    const day = now.getDate()
+    const hour = now.getHours().toString().padStart(2, "0")
+    const min = now.getMinutes().toString().padStart(2, "0")
+    const dateStr = `${month}/${day} ${hour}:${min}`
+
+    const entry = {
+      date: dateStr,
+      chapterName: this.incomingState.currentChapterName,
+      preview: previewContent,
+      gameState: this.incomingState
+    }
+
+    // 使用 splice 触发响应式更新
+    this.saves.splice(index, 1, entry)
+
+    // 保存整个数组
+    storage.set({
+      key: SAVE_KEY,
+      value: JSON.stringify(this.saves),
+      success: () => prompt.showToast({message: "保存成功"})
+    })
+  },
+
+  // 加载存档
+  doLoad(index) {
+    this.$app.$def.globalGameState = this.saves[index].gameState
+
+    // 设置为存档的章节后跳转回去游戏页面
+    router.replace({
+      uri: "pages/game"
+    })
+  },
+
+  // 长按删除
+  handleDelete(index) {
+    if (!this.saves[index]) return
+
+    this.saves.splice(index, 1, null)
+
+    storage.set({key: SAVE_KEY, value: JSON.stringify(this.saves)})
+
+    prompt.showToast({message: "删除成功"})
+  },
+
+  goBack() {
+    router.back()
+  }
+}
+</script>
+
+<style>
+.page {
+  flex-direction: column;
+  background-color: #1d1d1d;
+  width: 100%;
+  height: 100%;
+}
+
+.header {
+  height: 50px;
+  justify-content: center;
+  align-items: center;
+}
+
+.title {
+  color: #cf89f8;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.scroll-container {
+  flex: 1;
+  flex-direction: column;
+}
+.slot-wrapper {
+  width: 100%;
+  padding: 10px 0;
+  justify-content: center;
+}
+
+.card {
+  width: 85%;
+  min-height: 90px;
+  background-color: #cf89f8;
+  border-radius: 18px;
+  padding: 12px;
+  justify-content: center;
+  align-items: center;
+}
+
+.card-content {
+  flex-direction: column;
+  width: 100%;
+  align-items: center;
+}
+
+.chap-name {
+  color: #000000;
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.prev-text {
+  color: #1a1a1a;
+  font-size: 14px;
+  lines: 1;
+  margin-bottom: 4px;
+}
+
+.date-text {
+  color: #444444;
+  font-size: 11px;
+}
+
+/* 空存档时的加号 */
+.plus-icon {
+  color: #ffffff;
+  font-size: 50px;
+  line-height: 50px;
+}
+
+/* 底部返回 */
+.footer-bar {
+  height: 80px;
+  background-color: #333333;
+  margin: 15px;
+  border-radius: 25px;
+  justify-content: center;
+  align-items: center;
+}
+
+.footer-text {
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: bold;
+}
+</style>

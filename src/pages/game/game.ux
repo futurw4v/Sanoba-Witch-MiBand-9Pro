@@ -1,0 +1,993 @@
+<!-- 此ux有点职责过重了，后期打算模块化 -->
+<template>
+  <div class="page" @click="handleScreenClick" @swipe="handleSwipe" @longpress="handleLongPress">
+    <image class="bg-image" src="{{ '/common/bg/' + currentBg + '.jpg' }}"></image>
+
+    <div class="ui-layer">
+      <!-- 选项按钮 -->
+      <div class="options-overlay" if="{{ showOptions }}">
+        <div class="options-container">
+          <div
+            for="{{ (index, item) in currentOptions }}"
+            class="option-button"
+            @click="handleOptionClick(item[1], item[2])"
+          >
+            <text class="option-text">{{ item[0] }}</text>
+          </div>
+        </div>
+      </div>
+
+      <!-- 对话框部分（说话人与打字机） -->
+      <div class="speaker-box" if="{{ currentSpeaker }}">
+        <text class="speaker-text">{{ currentSpeaker }}</text>
+      </div>
+
+      <div class="dialogue-box" if="{{ !isLoading }}">
+        <scroll scroll-y="true" class="scroll-view" id="dialogueScroll">
+          <text
+            class="typewriter-text"
+            style="font-size: {{ settings.textSize }}px; line-height: {{ settings.textSize * 1.3 }}px;"
+          >
+            {{ displayText }}
+          </text>
+        </scroll>
+      </div>
+    </div>
+
+    <!-- 侧滑/长按菜单部分 -->
+    <div class="menu-overlay" if="{{ showSwipeMenu }}">
+      <!-- 暗话背景 -->
+      <image
+        class="bg-image"
+        style="opacity: 0.4"
+        src="{{ '/common/bg/' + currentBg + '.jpg' }}"
+      ></image>
+
+      <!-- 容器与按钮 -->
+      <div class="menu-container" @click="stopClick">
+        <text class="menu-title">菜单</text>
+
+        <div class="menu-grid">
+          <div class="menu-btn" @click="saveGame">
+            <text class="btn-text">保存进度</text>
+          </div>
+          <div class="menu-btn" @click="routeLoad">
+            <text class="btn-text">读取进度</text>
+          </div>
+          <div class="menu-btn" @click="skipToOptions">
+            <text class="btn-text">跳过到下一个选项</text>
+          </div>
+          <div class="menu-btn" @click="returnToHome">
+            <text class="btn-text">返回主页</text>
+          </div>
+          <div class="menu-btn close-btn" @click="closeMenu">
+            <text class="btn-text">返回游戏</text>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import storage from "@system.storage"
+import file from "@system.file"
+import {CONFIG} from "../../common/constants.js"
+import router from "@system.router"
+import prompt from "@system.prompt"
+
+// 使用.json格式的文本似乎在实体机上读取不到剧本（就算模拟器读的到），故此处使用txt存储
+// 剧本列表
+const SCN_LIST = {
+  common: [
+    {id: "001", path: "001.共通－オナニーマスター.ks.txt"},
+    {id: "002", path: "002.共通－欠片吸収.ks.txt"},
+    {id: "003", path: "003.共通－心の穴.ks.txt"},
+    {id: "004", path: "004.共通－今後もよろしく.ks.txt"},
+    {id: "005", path: "005.共通－因幡めぐる.ks.txt"},
+    {id: "006", path: "006.共通－合コンテク.ks.txt"},
+    {id: "007", path: "007.共通－めぐるのその後.ks.txt"},
+    {id: "008", path: "008.共通－デート依頼.ks.txt"},
+    {id: "009", path: "009.共通－休日デート.ks.txt"},
+    {id: "010", path: "010.共通－転入生.ks.txt"},
+    {id: "011", path: "011.共通－先輩の悩み.ks.txt"},
+    {id: "012", path: "012.共通－魔女.ks.txt"},
+    {id: "013", path: "013.共通－キマシタワ.ks.txt"},
+    {id: "014", path: "014.共通－失恋.ks.txt"},
+    {id: "015", path: "015.共通－釣り.ks.txt"},
+    {id: "016", path: "016.共通－廃部.ks.txt"},
+    {id: "017", path: "017.共通－勉強会.ks.txt"},
+    {id: "018", path: "018.共通－パーティー準備.ks.txt"},
+    {id: "019", path: "019.共通－パーティ.ks.txt"},
+    {
+      id: "020_meguru",
+
+      path: "020.共通－パーティーめぐる.ks.txt"
+    },
+    {id: "020_tsumugi", path: "020.共通－パーティー紬.ks.txt"},
+    {id: "020_nene", path: "020.共通－パーティ寧々.ks.txt"},
+    {id: "020_akogare", path: "020.共通－パーティ憧子.ks.txt"}
+  ],
+  nene: [
+    {id: "101", path: "101.寧々－ラーメン.ks.txt"},
+    {id: "102", path: "102.寧々－お見舞い.ks.txt"},
+    {id: "103", path: "103.寧々－告白.ks.txt"},
+    {id: "104", path: "104.寧々－初体験.ks.txt"},
+    {id: "105", path: "105.寧々－報告会.ks.txt"},
+    {id: "106", path: "106.寧々－急転.ks.txt"},
+    {id: "107", path: "107.寧々－元鞘.ks.txt"},
+    {id: "108", path: "108.寧々－決断.ks.txt"},
+    {id: "109", path: "109_β.寧々－お別れデート.ks.txt"},
+    {id: "110", path: "110.寧々－Restart（寧々編）.ks.txt"},
+    {id: "111", path: "111.寧々－Restart（本編）.ks.txt"},
+    {
+      id: "112",
+
+      path: "112.寧々－Restart（２週目Ｈ）.ks.txt"
+    },
+    {
+      id: "113",
+
+      path: "113.寧々－Restart（再び部活）.ks.txt"
+    },
+    {
+      id: "114",
+
+      path: "114.寧々－Restart（変わりゆく日々）.ks.txt"
+    },
+    {
+      id: "115",
+
+      path: "115.寧々－Restart（二度目の本番）.ks.txt"
+    },
+    {id: "116", path: "116.寧々－エピローグ.ks.txt"},
+    {id: "117", path: "117.寧々－アフター.ks.txt"}
+  ],
+  meguru: [
+    {id: "201", path: "201.めぐる－記念撮影.ks.txt"},
+    {id: "202", path: "202.めぐる－同士.ks.txt"},
+    {id: "203", path: "203.めぐる－仲良し.ks.txt"},
+    {id: "204", path: "204.めぐる－親友.ks.txt"},
+    {id: "205", path: "205.めぐる－距離感.ks.txt"},
+    {id: "206", path: "206.めぐる－解放.ks.txt"},
+    {id: "207", path: "207.めぐる－嫉妬.ks.txt"},
+    {id: "208", path: "208.めぐる－抱擁.ks.txt"},
+    {id: "209", path: "209.めぐる－不器用な二人.ks.txt"},
+    {id: "210", path: "210.めぐる－甘酸っぱさ.ks.txt"},
+    {id: "211", path: "211.めぐる－ラブラブ.ks.txt"},
+    {id: "212", path: "212.めぐる－恋のサイクル.ks.txt"},
+    {id: "213", path: "213.めぐる－罪悪感.ks.txt"},
+    {id: "214", path: "214.めぐる－埋め合う二人.ks.txt"},
+    {id: "215", path: "215.めぐる－互いの弱点.ks.txt"},
+    {id: "216", path: "216.めぐる－伝えきれない想い.ks.txt"},
+    {id: "217", path: "217.めぐる－自分自身の魔法.ks.txt"},
+    {id: "218", path: "218.めぐる－エピローグ.ks.txt"},
+    {id: "219", path: "219.めぐる－アフター.ks.txt"}
+  ],
+  tsumugi: [
+    {id: "301", path: "301.紬－もう１人のアルプ.ks.txt"},
+    {id: "302", path: "302.紬－代償の理由.ks.txt"},
+    {id: "303", path: "303.紬－心の穴、再び.ks.txt"},
+    {id: "304", path: "304.紬－スイート間接キス.ks.txt"},
+    {id: "305", path: "305.紬－手を繋いで歩こう.ks.txt"},
+    {id: "306", path: "306.紬－caught a cold.ks.txt"},
+    {id: "307", path: "307.紬－ご褒美の期限.ks.txt"},
+    {id: "308", path: "308.紬－空回り.ks.txt"},
+    {id: "309", path: "309.紬－告白の決意.ks.txt"},
+    {id: "310", path: "310.紬－契約代行.ks.txt"},
+    {id: "311", path: "311.紬－紬と初デート.ks.txt"},
+    {id: "312", path: "312.紬－シュウジくん.ks.txt"},
+    {id: "313", path: "313.紬－いつでも一緒.ks.txt"},
+    {id: "314", path: "314.紬－疑惑.ks.txt"},
+    {id: "315", path: "315.紬－父の様子.ks.txt"},
+    {id: "316", path: "316.紬－その子犬は？.ks.txt"},
+    {id: "317", path: "317.紬－新たな被害者.ks.txt"},
+    {id: "318", path: "318.紬－出来損ないのアルプ.ks.txt"},
+    {id: "319", path: "319.紬－君は大切な友達.ks.txt"},
+    {id: "320", path: "320.紬－紬エピローグ.ks.txt"},
+    {id: "321", path: "321.紬－紬アフター.ks.txt"}
+  ],
+  akogare: [
+    {id: "401", path: "401.憧子－初デート.ks.txt"},
+    {id: "402", path: "402.憧子－バスケ部.ks.txt"},
+    {id: "403", path: "403.憧子－恋の勉強.ks.txt"},
+    {id: "404", path: "404.憧子－告白.ks.txt"},
+    {id: "405", path: "405.憧子－初体験.ks.txt"},
+    {id: "406", path: "406.憧子－謎.ks.txt"},
+    {id: "407", path: "407.憧子－記憶.ks.txt"},
+    {id: "408", path: "408.憧子－突然の死.ks.txt"},
+    {id: "409", path: "409.憧子－復活.ks.txt"},
+    {id: "410", path: "410.憧子－その後.ks.txt"},
+    {id: "411", path: "411.憧子－エピローグ.ks.txt"},
+    {id: "412", path: "412.憧子－アフター.ks.txt"}
+  ],
+  wakana: [
+    {id: "500", path: "500.和奏－分岐.ks.txt"},
+    {id: "501", path: "501.和奏－ハプニング.ks.txt"},
+    {id: "502", path: "502.和奏－意識する日々.ks.txt"},
+    {id: "503", path: "503.和奏－セカンドキス.ks.txt"},
+    {id: "504", path: "504.和奏－ドギマギな日々.ks.txt"},
+    {id: "505", path: "505.和奏－ライブ本番.ks.txt"},
+    {id: "506", path: "506.和奏－レロレロ.ks.txt"},
+    {id: "507", path: "507.和奏－エピローグ的な.ks.txt"},
+    {id: "508", path: "508.和奏－アフター.ks.txt"}
+  ]
+}
+
+// 剧本节点类型
+const TYPE = {
+  NODE: 0, // 标签/跳转点 [0, "label_name"]
+  BG: 1, // 背景切换 [1, "bg_name"]
+  DIALOGUE: 2, // 对话 [2, "说话人", "内容", [立绘列表]]
+  SELECT: 3, // 选项 [3, [["文字", "跳转", "表达式"]]]
+  TITLE: 4 // 章节标题 [4, "章节标题"]
+}
+
+const SETTINGS_KEY = "settings"
+
+export default {
+  private: {
+    // 剧本有关
+    scriptData: [],
+    currentScnId: "001",
+    currentLineIndex: 0,
+    currentCharIndex: 0,
+
+    // 游戏有关
+    displayText: "",
+    fullText: "",
+    currentSpeaker: "",
+    currentBg: "空_青空",
+    currentChapterName: "",
+    currentCharacters: [],
+    gameFlags: {},
+
+    // UI有关
+    timer: null,
+    isTextComplete: false,
+    showSwipeMenu: false,
+
+    // 选项有关
+    currentOptions: [],
+    showOptions: false,
+
+    // 状态与设置
+    isLoading: true,
+    isSkipping: false,
+    settings: {
+      textSpeed: 40,
+      textSize: 20
+    }
+  },
+
+  onInit() {
+    // 读取系统设置（音量、文字速度等）
+    storage.get({
+      key: SETTINGS_KEY,
+      success: (data) => {
+        if (data) {
+          try {
+            const parsed = JSON.parse(data)
+            this.settings.textSpeed = parsed.textSpeed
+            this.settings.textSize = parsed.textSize
+            if (CONFIG.DEBUG) console.log("[Game] 设置加载成功")
+          } catch (e) {
+            if (CONFIG.DEBUG) console.error("[Game] 解析设置失败")
+          }
+        }
+      }
+    })
+  },
+
+  // 监听页面显示，尝试从全局状态恢复进度
+  onShow() {
+    const stateToLoad = this.$app.$def.globalGameState
+
+    if (stateToLoad) {
+      if (CONFIG.DEBUG) console.log("[Game] 恢复存档状态:", stateToLoad)
+
+      // 读取存档内容
+      const targetScnId = stateToLoad.currentScnId || "001"
+      const targetIndex = parseInt(stateToLoad.currentLineIndex, 10) || 0
+      const targetBg = stateToLoad.currentBg
+      const targetChapterName = stateToLoad.currentChapterName
+      const targetGameFlags = stateToLoad.gameFlags
+
+      if (targetChapterName) {
+        this.currentChapterName = targetChapterName
+      }
+
+      if (targetGameFlags) {
+        this.gameFlags = targetGameFlags
+      }
+
+      // 清除全局变量防止重复触发
+      this.$app.$def.globalGameState = null
+
+      if (this.timer) clearTimeout(this.timer)
+
+      // 加载剧本并跳转到对应行
+      this.loadScenario(targetScnId, targetIndex, targetBg)
+    } else {
+      // 如果没有存档状态，且当前没在播放剧本，则加载默认进度
+      if (!this.scriptData || this.scriptData.length === 0) {
+        this.loadScenario(this.currentScnId, this.currentLineIndex)
+      }
+    }
+  },
+
+  // 跳过到下一个选项
+  skipUntilSelect() {
+    // 如果还未进入下一条剧本，直接返回
+    if (!this.scriptData || this.scriptData.length === 0) return
+
+    this.isSkipping = true
+
+    // 抓取文本
+    let lastDialogueNode = null
+
+    while (this.currentLineIndex < this.scriptData.length) {
+      const node = this.scriptData[this.currentLineIndex]
+      const type = node[0]
+
+      if (type === TYPE.SELECT) {
+        // 停止前，同步最后一句对话内容
+        if (lastDialogueNode) {
+          this.currentSpeaker = lastDialogueNode[1] || ""
+          this.fullText = lastDialogueNode[2] || ""
+          this.displayText = this.fullText
+          this.isTextComplete = true
+        }
+
+        this.isSkipping = false
+        this.currentOptions = node[1]
+        this.showOptions = true
+
+        // 渲染文本为最后一行对话（可选，让画面不至于太突兀）
+        this.isTextComplete = true
+        if (CONFIG.DEBUG) console.log("[Game] 停止于选项")
+        return // 退出函数，等待玩家操作
+      }
+
+      // 抓取文本
+      if (type === TYPE.DIALOGUE) {
+        lastDialogueNode = node
+      }
+
+      // 更新背景防止错乱
+      if (type === TYPE.BG) {
+        const bg = node[1]
+        this.currentBg = bg
+        if (CONFIG.DEBUG) console.log("[Game] 背景更新：" + bg)
+      }
+
+      // 更新章节名称
+      if (type === TYPE.TITLE) {
+        this.currentChapterName = node[1]
+      }
+
+      // 继续下一行
+      this.currentLineIndex++
+    }
+
+    // 如果循环结束还没找到选项，说明本章节结束了
+    if (this.currentLineIndex >= this.scriptData.length) {
+      this.goToNextScenario()
+    }
+  },
+
+  getNextScn(currentId) {
+    if (currentId === "020_nene") return SCN_LIST.nene[0]
+    if (currentId === "020_meguru") return SCN_LIST.meguru[0]
+    if (currentId === "020_tsumugi") return SCN_LIST.tsumugi[0]
+    if (currentId === "020_akogare") return SCN_LIST.akogare[0]
+
+    // 查找共通线
+    const commonList = SCN_LIST.common
+    const commonIdx = commonList.findIndex((i) => i.id === currentId)
+
+    if (commonIdx !== -1) {
+      // 核心分歧点：共通线 019 结束时
+      if (currentId === "019") {
+        const route = this.determineRoute() // 获取得分最高的角色ID
+
+        switch (route) {
+          case "nene":
+            return commonList.find((i) => i.id === "020_nene")
+          case "meguru":
+            return commonList.find((i) => i.id === "020_meguru")
+          case "tsumugi":
+            return commonList.find((i) => i.id === "020_tsumugi")
+          case "akogare":
+            return commonList.find((i) => i.id === "020_akogare")
+          case "wakana":
+            return SCN_LIST.wakana[0] // 和奏直接进 500
+          default:
+            return commonList[commonIdx + 1]
+        }
+      }
+
+      // 普通共通线顺序推进
+      return commonList[commonIdx + 1] || null
+    }
+
+    // 遍历所有个人线，查找当前 ID 的下一章
+    const routes = ["nene", "meguru", "tsumugi", "akogare", "wakana"]
+    for (const route of routes) {
+      const list = SCN_LIST[route]
+      if (!list) continue
+      const index = list.findIndex((i) => i.id === currentId)
+      if (index !== -1) {
+        return list[index + 1] || null // 没有下一章则 null
+      }
+    }
+
+    // 完全找不到，返回 null
+    return null
+  },
+
+  async loadScenario(id, startIndex = 0, savedBg = null) {
+    this.isLoading = true
+
+    if (this.timer) clearTimeout(this.timer)
+
+    try {
+      const fileName = this.getPathById(id)
+      if (!fileName) throw new Error(`未找到ID: ${id}`)
+
+      // 调用上面的读取函数
+      const result = await this.readJsonFile(fileName)
+
+      // 处理数据格式
+      this.scriptData = Array.isArray(result) ? result : result.content || []
+
+      this.currentScnId = id
+      this.currentLineIndex = parseInt(startIndex, 10)
+
+      if (savedBg) {
+        if (CONFIG.DEBUG) console.log("[Game] 应用存档背景: " + savedBg)
+        this.currentBg = savedBg
+      }
+
+      if (CONFIG.DEBUG) console.log(`[Game] 加载场景：id=${id}, startIndex=${startIndex}`)
+
+      this.isLoading = false
+
+      if (CONFIG.DEBUG) console.log(`[Game] ${id} 加载成功，当前行:${startIndex}`)
+
+      this.showLine()
+    } catch (error) {
+      this.isLoading = false
+      this.displayText = "错误: " + error.message
+      if (CONFIG.DEBUG) console.error(error.message)
+    }
+  },
+
+  // 封装 file.readText 为 Promise
+  readJsonFile(fileName) {
+    return new Promise((resolve, reject) => {
+      file.readText({
+        uri: `/common/scn/${fileName}`,
+        success: (data) => {
+          try {
+            const jsonData = JSON.parse(data.text)
+            resolve(jsonData)
+          } catch (e) {
+            reject(new Error(`JSON解析失败: ${e.message}`))
+          }
+        },
+        fail: (error) => {
+          reject(new Error(`文件读取失败: ${error.code}`))
+        }
+      })
+    })
+  },
+
+  goToNextScenario() {
+    const next = this.getNextScn(this.currentScnId, this.userSelectedRoute || "common")
+
+    if (next) {
+      if (CONFIG.DEBUG) console.log(`[Game] 准备进入下一章节: ${next.name}`)
+      this.currentScnId = next.id
+      this.loadScenario(next.id)
+    } else {
+      prompt.showToast({message: "游戏结束"})
+    }
+  },
+
+  showLine() {
+    if (!this.scriptData || this.scriptData.length === 0) {
+      if (CONFIG.DEBUG) console.log("[Game] 等待剧本加载...")
+      return
+    }
+
+    // 跨章节连续跳过
+    if (this.isSkipping) {
+      this.skipUntilSelect()
+      return
+    }
+
+    const node = this.scriptData[this.currentLineIndex]
+    if (!node) {
+      this.goToNextScenario()
+      return
+    }
+
+    const type = node[0]
+
+    switch (type) {
+      case TYPE.NODE:
+        // 标签，记录日志并自动跳到下一行
+        if (CONFIG.DEBUG) console.log("[Game] 进入节点: " + node[1])
+        this.currentLineIndex++
+        this.showLine()
+        break
+
+      case TYPE.BG:
+        // 切换背景并跳到下一行
+        this.currentBg = node[1]
+        this.currentLineIndex++
+        this.showLine()
+        break
+
+      case TYPE.DIALOGUE:
+        // 对话更新 [2, "说话人", "内容", [立绘列表（可选）]]
+        this.currentSpeaker = node[1] || ""
+        this.fullText = node[2] || ""
+
+        // 立绘更新 (数组长度大于3，说明有立绘数据)
+        // TODO:立绘实现
+        //if (node.length > 3) {
+        //this.currentCharacters = node[3]; // 这里你可以根据需要处理立绘显示逻辑
+        //if (CONFIG.DEBUG) console.log("立绘更新:", this.currentCharacters)
+        //}
+
+        this.displayText = ""
+        this.isTextComplete = false
+        this.currentCharIndex = 0
+        this.showTypeWriterEffect()
+        break
+
+      case TYPE.SELECT:
+        // 选项：[3, [["文字", "跳转", "表达式"]]]
+        this.currentOptions = node[1]
+        this.showOptions = true
+        break
+
+      case TYPE.TITLE:
+        this.currentChapterName = node[1]
+        if (CONFIG.DEBUG) console.log("[Game] 新章节名称: " + this.currentChapterName)
+
+        // 提示玩家进入新章节
+        if (CONFIG.DEBUG)
+          prompt.showToast({
+            message: this.currentChapterName,
+            duration: 2000
+          })
+
+        // 标题是元数据，不阻塞剧情，自动运行下一行
+        this.currentLineIndex++
+        this.showLine()
+        break
+    }
+  },
+
+  showTypeWriterEffect() {
+    if (this.timer) clearTimeout(this.timer)
+
+    if (this.currentCharIndex === 0) {
+      const scroll = this.$element("dialogueScroll")
+      if (scroll) {
+        scroll.scrollTo({top: 0, behavior: "instant"})
+      }
+    }
+
+    if (this.currentCharIndex < this.fullText.length) {
+      this.displayText += this.fullText.charAt(this.currentCharIndex)
+      this.currentCharIndex++
+
+      this.timer = setTimeout(() => {
+        this.showTypeWriterEffect()
+      }, this.settings.textSpeed)
+
+      if (this.currentCharIndex % 5 === 0 && this.displayText.length > 20) {
+        const scroll = this.$element("dialogueScroll")
+        if (scroll) {
+          scroll.scrollTo({top: 9999, behavior: "instant"})
+        }
+      }
+    } else {
+      this.finishText()
+    }
+  },
+
+  /* 
+      剧本有关（解析剧本等）
+  */
+  // 表达式解析器，支持简单的赋值和自增
+  runExp(expStr) {
+    if (!expStr) return
+    if (CONFIG.DEBUG) console.log("[Game] 执行指令: " + expStr)
+
+    // 按照逗号拆分多条指令 (如 "f.sel_flag=0, f.wak_flag++")
+    const parts = expStr.split(",")
+
+    parts.forEach((part) => {
+      let cmd = part.trim()
+      try {
+        if (cmd.includes("++")) {
+          // 处理自增: f.wak_flag ++
+          const varName = cmd.replace("f.", "").replace("++", "").trim()
+          this.gameFlags[varName] = (this.gameFlags[varName] || 0) + 1
+        } else if (cmd.includes("--")) {
+          // 处理自减: f.wak_flag -- (其实不知道有没有这种 保险起见还是写上去了)
+          const varName = cmd.replace("f.", "").replace("--", "").trim()
+          this.gameFlags[varName] = (this.gameFlags[varName] || 0) - 1
+        } else if (cmd.includes("=")) {
+          // 处理赋值: f.sel_flag = 1
+          let [varName, val] = cmd.split("=")
+          varName = varName.replace("f.", "").trim()
+          val = val.trim()
+
+          // 尝试转数字，转不了则存字符串
+          const numVal = parseInt(val)
+          this.gameFlags[varName] = isNaN(numVal) ? val : numVal
+        }
+      } catch (e) {
+        console.error("Exp解析出错: " + cmd)
+      }
+    })
+
+    if (CONFIG.DEBUG) console.log("[Game] 当前变量库: ", JSON.stringify(this.gameFlags))
+  },
+
+  // 通过gameFlag确定进入哪条线
+  determineRoute() {
+    const flags = this.gameFlags
+    const flagScores = [
+      {id: "nene", score: flags.nen_flag || 0},
+      {id: "meguru", score: flags.meg_flag || 0},
+      {id: "tsumugi", score: flags.tsu_flag || 0},
+      {id: "akogare", score: flags.tou_flag || 0},
+      {id: "wakana", score: flags.wak_flag || 0}
+    ]
+
+    // 按分数从高到低排序
+    flagScores.sort((a, b) => b.score - a.score)
+
+    // 返回分数最高的角色ID，如果最高分是0，就是单身
+    if (flagScores[0].score === 0) {
+      if (CONFIG.DEBUG) console.log("[Game] 好感度均为0，单身")
+      return null
+    }
+
+    if (CONFIG.DEBUG) console.log(`[Game] 进入 ${flagScores[0].id} 线`)
+    return flagScores[0].id
+  },
+
+  // 根据ID获取剧本路径
+  getPathById(id) {
+    for (const category of Object.values(SCN_LIST)) {
+      const scene = category.find((item) => item.id === id)
+      if (scene) return scene.path
+    }
+    return undefined
+  },
+
+  // 跳过章节
+  skipToOptions() {
+    this.closeMenu()
+    this.skipUntilSelect()
+  },
+
+  finishText() {
+    clearTimeout(this.timer)
+    this.displayText = this.fullText
+    this.isTextComplete = true
+  },
+
+  // 保存进度
+  saveGame() {
+    // 构造当前游戏状态
+    const currentState = {
+      currentScnId: this.currentScnId,
+      currentLineIndex: this.currentLineIndex,
+      currentBg: this.currentBg,
+      currentSpeaker: this.currentSpeaker,
+      currentChapterName: this.currentChapterName,
+      gameFlags: this.gameFlags,
+      fullText: this.fullText
+    }
+
+    this.closeMenu()
+
+    // 跳转到 data 页面，并把传入当前状态
+    router.push({
+      uri: "pages/data",
+      params: {currentState: currentState}
+    })
+  },
+
+  /*  
+      UI相关（点击/侧滑事件等）  
+  */
+  handleScreenClick() {
+    if (this.showSwipeMenu || this.isLoading || this.showOptions) return
+
+    if (this.isSkipping) {
+      // 快进时，遇到选项已经暂停，如果用户再次点击（其实选项已弹出不会走到这），
+      // 但以防万一,如果不在选项状态则继续快进
+      if (!this.showOptions) {
+        this.skipUntilSelect()
+      }
+      return
+    }
+
+    if (!this.isTextComplete) {
+      this.finishText()
+    } else {
+      if (this.currentLineIndex < this.scriptData.length - 1) {
+        this.currentLineIndex++
+        this.showLine()
+      } else {
+        if (CONFIG.DEBUG) console.log("[Game] 当前章节结束，尝试进入下一章")
+        this.goToNextScenario()
+      }
+    }
+  },
+
+  handleOptionClick(targetLabel, exp) {
+    this.showOptions = false
+
+    if (exp) {
+      this.runExp(exp)
+    }
+
+    const targetIndex = this.scriptData.findIndex(
+      (item) => item[0] === TYPE.NODE && item[1] === targetLabel
+    )
+
+    if (targetIndex !== -1) {
+      this.currentLineIndex = targetIndex
+      // 如果之前是快进模式，选项选择后继续快进
+      if (this.isSkipping) {
+        this.skipUntilSelect()
+      } else {
+        this.showLine()
+      }
+    } else {
+      prompt.showToast({message: `未找到标签: ${targetLabel}`})
+      this.showOptions = true
+    }
+  },
+
+  closeMenu(event) {
+    // 阻止事件冒泡
+    if (event && event.stopPropagation) {
+      event.stopPropagation()
+    }
+
+    this.showSwipeMenu = false
+  },
+
+  // 跳转到存档页
+  routeLoad() {
+    router.push({
+      uri: "pages/data"
+    })
+  },
+
+  // 阻止点击穿透，防止在侧滑时触发下一句
+  stopClick(event) {
+    // 拦截容器内的所有点击，不让它传到 page 层
+    if (event && event.stopPropagation) {
+      event.stopPropagation()
+    }
+  },
+
+  handleSwipe() {
+    this.showSwipeMenu = true
+  },
+
+  handleLongPress() {
+    // 便于调试触发菜单
+    if (CONFIG.DEBUG) {
+      if (CONFIG.DEBUG) console.log("[Game] 触发长按")
+      this.handleSwipe()
+    }
+  },
+
+  returnToHome() {
+    router.replace({uri: "pages/index"})
+  }
+}
+</script>
+
+<style>
+.page {
+  flex-direction: column;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.bg-image {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 1; /* 最底层 */
+}
+
+.ui-layer {
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 20px;
+  width: 100%;
+  height: 100%;
+
+  z-index: 3;
+}
+
+.speaker-box {
+  position: absolute;
+  bottom: 140px; /* 120px + 20px */
+  left: 15px;
+  right: 15px;
+
+  background-color: rgba(207, 137, 248, 0.8);
+  padding: 4px 12px;
+
+  border-radius: 8px;
+  margin-bottom: 5px;
+  align-self: flex-start;
+}
+
+.speaker-text {
+  font-size: 18px;
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.dialogue-box {
+  position: absolute;
+
+  bottom: 20px;
+  left: 15px;
+  right: 15px;
+
+  height: 120px;
+
+  background-color: rgba(0, 0, 0, 0.4);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+}
+
+.scroll-view {
+  width: 100%;
+  height: 100%;
+
+  /* 开启多行排列，允许内容向下延伸 */
+  flex-wrap: wrap;
+  padding: 12px;
+}
+
+.typewriter-text {
+  /* 强制占满父宽，同时锁定左侧对齐起点 */
+  width: 100%;
+
+  color: #ffffff;
+  text-align: left;
+  padding: 0;
+  margin: 0;
+}
+
+.menu-overlay {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+
+  z-index: 5;
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+/* 菜单容器 */
+.menu-container {
+  width: 80%;
+  padding: 20px;
+  background-color: rgba(0, 0, 0, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  flex-direction: column;
+  align-items: center;
+}
+
+.menu-title {
+  color: #cf89f8;
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+.menu-grid {
+  flex-direction: column;
+  width: 100%;
+}
+
+/* 按钮样式 */
+.menu-btn {
+  width: 100%;
+  height: 60px;
+  margin-bottom: 10px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  justify-content: center;
+  align-items: center;
+}
+
+.close-btn {
+  background-color: rgba(207, 137, 248, 0.3);
+  margin-top: 10px;
+}
+
+.btn-text {
+  color: #ffffff;
+  font-size: 18px;
+}
+
+/* 修改已有的 tips-overlay 确保其居中 */
+.menu-overlay {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10; /* 提升层级到最前 */
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+/* 选项 */
+.options-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* 关键：确保遮罩层本身是 Flex 布局并居中 */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
+
+.options-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 80%;
+  display: flex;
+  flex-direction: column;
+}
+
+.option-button {
+  width: 100%;
+  background-color: rgba(207, 137, 248, 0.8);
+  padding: 15px;
+  margin: 10px 0;
+  border-radius: 10px;
+  justify-content: center;
+}
+
+.option-text {
+  color: #ffffff;
+  font-size: 18px;
+  text-align: center;
+}
+</style>

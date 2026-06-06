@@ -1,0 +1,156 @@
+<template>
+  <div class="page" @swipe="swipeBack" @longpress="longPressBack">
+    <image class="bg-image" src="/common/title_bg.png"></image>
+
+    <div class="header">
+      <text class="title">关于</text>
+    </div>
+
+    <div class="main-container">
+      <!-- 上方卡片 -->
+      <div class="app-card">
+        <image class="app-icon" src="/common/logo.png"></image>
+        <div class="app-info">
+          <text class="app-name">魔女的夜宴 MiBand 9 Pro移植</text>
+          <text class="app-version">Version: {{ appVersion }}</text>
+        </div>
+      </div>
+
+      <!-- 下方信息栏 -->
+      <div class="details-container">
+        <div class="detail-item">
+          <text class="detail-label">作者</text>
+          <text class="detail-content">futrw4v</text>
+        </div>
+
+        <div class="detail-item">
+          <text class="detail-label">开源仓库</text>
+          <text class="detail-content">github.com/futurw4v/Sanoba-Witch-MiBand-9Pro/</text>
+        </div>
+
+        <div class="detail-item">
+          <text class="detail-label">开源协议</text>
+          <text class="detail-content">GNU GPL v3.0</text>
+        </div>
+
+        <div class="detail-item">
+          <text class="detail-label"></text>
+          <text style="font-size: 20px" class="detail-content">请不要用于商业用途！<3</text>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import router from "@system.router"
+import manifest from "../../manifest.json"
+import {CONFIG} from "../../common/constants.js"
+
+export default {
+  private: {
+    appVersion: ""
+  },
+
+  onInit() {
+    this.appVersion = manifest.versionName
+  },
+
+  swipeBack() {
+    router.back()
+  },
+
+  longPressBack() {
+    if (CONFIG.DEBUG) router.back()
+  }
+}
+</script>
+
+<style>
+.page {
+  flex-direction: column;
+  background-color: #000000;
+  width: 100%;
+  height: 100%;
+}
+
+.bg-image {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  opacity: 0.15;
+}
+
+.header {
+  height: 80px;
+  justify-content: center;
+  align-items: center;
+}
+
+.title {
+  color: #cf89f8;
+  font-size: 20px;
+  font-weight: bold;
+}
+.main-container {
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 30px;
+}
+
+.app-card {
+  width: 105%;
+  background-color: #cf89f8;
+  border-radius: 20px;
+  padding: 20px;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.app-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 30px;
+  margin-right: 15px;
+  box-shadow: 0px 0.3px 20px rgba(0, 0, 0, 0.5);
+}
+
+.app-info {
+  flex: 1;
+  flex-direction: column;
+}
+
+.app-name {
+  color: #1a1a1a;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.app-version {
+  color: #333333;
+  font-size: 12px;
+}
+
+.details-container {
+  width: 100%;
+  flex-direction: column;
+}
+
+.detail-item {
+  flex-direction: column;
+  margin-bottom: 15px;
+}
+
+.detail-label {
+  color: #cf89f8;
+  font-size: 15px;
+  margin-bottom: 2px;
+}
+
+.detail-content {
+  color: #ffffff;
+  font-size: 14px;
+}
+</style>

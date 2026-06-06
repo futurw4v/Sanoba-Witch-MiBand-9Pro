@@ -1,0 +1,165 @@
+<template>
+  <div @swipe="handleSwipe">
+    <!-- 背景 -->
+    <image class="bg-image" src="/common/title_bg.png"></image>
+
+    <!-- 按钮（手环端貌似阉割了文字阴影 所以此处使用了重叠实现阴影） -->
+    <stack class="stack-button" style="top: 215px" @click="routeGame">
+      <text class="text-button text-shadow">开始游戏</text>
+      <text class="text-button">开始游戏</text>
+    </stack>
+    <stack class="stack-button" style="top: 265px" @click="routeLoad">
+      <text class="text-button text-shadow">载入进度</text>
+      <text class="text-button">载入进度</text>
+    </stack>
+    <stack class="stack-button" style="top: 315px" @click="routeSetting">
+      <text class="text-button text-shadow">系统设定</text>
+      <text class="text-button">系统设定</text>
+    </stack>
+    <stack class="stack-button" style="top: 365px" @click="routeAbout">
+      <text class="text-button text-shadow">关于本篇</text>
+      <text class="text-button">关于本篇</text>
+    </stack>
+    <stack class="stack-button" style="top: 415px" @click="exitApp">
+      <text class="text-button text-shadow">退出游戏</text>
+      <text class="text-button">退出游戏</text>
+    </stack>
+  </div>
+</template>
+
+<script>
+import router from "@system.router"
+import {CONFIG} from "../../common/constants.js"
+
+export default {
+  data: {
+    // 防止重复跳转的记位器
+    isNavigating: false,
+    // 用于解除锁定跳转的计时器，避免被锁死
+    navTimer: null
+  },
+
+  /* 重置导航状态 */
+  onInit() {
+    this.isNavigating = false
+    this.clearNavTimer()
+  },
+
+  onShow() {
+    this.isNavigating = false
+    this.clearNavTimer()
+  },
+
+  // 清除定时器
+  clearNavTimer() {
+    if (this.navTimer) {
+      clearTimeout(this.navTimer)
+      this.navTimer = null
+    }
+  },
+
+  // 跳转到游戏
+  routeGame() {
+    if (this.isNavigating) return
+
+    this.isNavigating = true
+
+    if (CONFIG.DEBUG) console.info("[Index] 跳转到游戏页面")
+    router.push({uri: "/pages/game"})
+
+    // 两秒后解除导航锁定，允许再次跳转
+    this.navTimer = setTimeout(() => {
+      this.isNavigating = false
+    }, 2000)
+  },
+
+  // 跳转到加载
+  routeLoad() {
+    if (this.isNavigating) return
+
+    this.isNavigating = true
+
+    if (CONFIG.DEBUG) console.info("[Index] 跳转到加载数据页面")
+    router.push({uri: "/pages/data"})
+
+    this.navTimer = setTimeout(() => {
+      this.isNavigating = false
+    }, 2000)
+  },
+
+  // 跳转到设置
+  routeSetting() {
+    if (this.isNavigating) return
+
+    this.isNavigating = true
+
+    if (CONFIG.DEBUG) console.info("[Index] 跳转到设置页面")
+    router.push({uri: "/pages/settings"})
+
+    this.navTimer = setTimeout(() => {
+      this.isNavigating = false
+    }, 2000)
+  },
+
+  // 跳转到关于
+  routeAbout() {
+    if (this.isNavigating) return
+
+    this.isNavigating = true
+
+    if (CONFIG.DEBUG) console.info("[Index] 跳转到关于页面")
+    router.push({uri: "/pages/about"})
+
+    this.navTimer = setTimeout(() => {
+      this.isNavigating = false
+    }, 2000)
+  },
+
+  // 退出
+  exitApp() {
+    try {
+      this.$app.exit()
+    } catch (e) {
+      prompt.showToast({message: "无法退出"})
+    }
+  },
+
+  // 禁用侧滑
+  handleSwipe() {}
+}
+</script>
+
+<style>
+.bg-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.text-button {
+  font-weight: bold;
+  left: 20px;
+  color: rgb(188, 72, 253);
+  display: flex;
+}
+
+.text-shadow {
+  position: absolute;
+  color: #000000;
+  opacity: 0.6;
+
+  margin-top: 1px;
+  margin-left: 1px;
+}
+
+.stack-button {
+  width: 150px;
+  height: auto;
+
+  position: absolute;
+}
+</style>

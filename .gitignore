@@ -1,0 +1,16 @@
+# Node modules and build output
+/.nyc_output
+/coverage
+/node_modules
+/sign
+/dist
+/build
+.husky/
+
+# IDEs and editors
+.vscode/
+.idea/
+
+# logs
+logs/
+*.log

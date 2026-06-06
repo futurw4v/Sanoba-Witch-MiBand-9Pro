@@ -1,0 +1,266 @@
+<template>
+  <div class="page" @swipe="handleSwipe">
+    <image class="bg-image" src="/common/title_bg.png"></image>
+
+    <!-- 顶部按钮 -->
+    <text class="text-button" style="left: 30px" @click="saveSettings">保存</text>
+    <text class="text-button" style="right: 30px" @click="back">退出</text>
+
+    <!-- 设置 -->
+    <text class="label-text" style="top: 85px">显示速度 ({{ settings.textSpeed }}ms)</text>
+    <slider
+      class="slider"
+      style="top: 120px"
+      min="20"
+      max="100"
+      step="5"
+      value="{{ settings.textSpeed }}"
+      @change="changeTextSpeed"
+    ></slider>
+
+    <text class="label-text" style="top: 185px">文字大小 ({{ settings.textSize }}px)</text>
+    <slider
+      class="slider"
+      style="top: 220px"
+      min="18"
+      max="30"
+      step="1"
+      value="{{ settings.textSize }}"
+      @change="changeTextSize"
+    ></slider>
+
+    <!-- 对话框与打字机 -->
+    <div class="dialogue-box">
+      <scroll scroll-y="true" class="scroll-view" id="dialogueScroll">
+        <text
+          class="typewriter-text"
+          style="font-size: {{ settings.textSize }}px; line-height: {{ settings.textSize * 1.3 }}px;"
+        >
+          {{ displayText }}
+        </text>
+      </scroll>
+    </div>
+  </div>
+</template>
+
+<script>
+import router from "@system.router"
+import storage from "@system.storage"
+import {CONFIG} from "../../common/constants.js"
+
+const SETTINGS_KEY = "settings"
+
+export default {
+  data: {
+    text: "Sanoba Witch\n文字显示速度展示\n0d000721",
+    displayText: "",
+    currentCharIndex: 0,
+
+    settings: {
+      textSpeed: 40,
+      textSize: 22
+    }
+  },
+
+  onInit() {
+    this.timer = null
+
+    const that = this
+
+    // 读取缓存设置
+    storage.get({
+      key: SETTINGS_KEY,
+
+      success: (data) => {
+        if (data) {
+          try {
+            if (CONFIG.DEBUG) console.log("[Settings] 原始设置数据: " + data)
+
+            that.settings = JSON.parse(data)
+          } catch (e) {
+            if (CONFIG.DEBUG) console.error("[Settings] JSON解析出错: " + e.message)
+          }
+        } else {
+          if (CONFIG.DEBUG) console.log("[Settings] 未读取到缓存数据，使用默认设置")
+        }
+
+        this.showTypeWriterEffect()
+      }
+    })
+  },
+
+  showTypeWriterEffect() {
+    if (this.timer) clearTimeout(this.timer)
+
+    // 确保开始显示时滚动到顶部
+    if (this.currentCharIndex === 0) {
+      this.$element("dialogueScroll").scrollTo({
+        top: 0,
+        behavior: "instant"
+      })
+    }
+
+    // 判断文字是否显示结束
+    if (this.currentCharIndex < this.text.length) {
+      // 否：按当前索引取出字符并追加到显示字符串末尾
+      this.displayText += this.text.charAt(this.currentCharIndex)
+      this.currentCharIndex++
+
+      this.timer = setTimeout(() => {
+        this.showTypeWriterEffect()
+      }, this.settings.textSpeed)
+
+      // 若文字较长（length > 20），则每五个字滚动到底部
+      if (this.currentCharIndex % 5 === 0 && this.displayText.length > 20) {
+        this.$element("dialogueScroll").scrollTo({
+          top: 9999,
+          behavior: "instant"
+        })
+      }
+    } else {
+      // 文字显示完成，重置计时器
+      this.timer = setTimeout(() => {
+        this.currentCharIndex = 0
+        this.displayText = ""
+        this.showTypeWriterEffect()
+      }, 2000)
+    }
+  },
+
+  // 保存设置
+  saveSettings() {
+    const setting = JSON.stringify(this.settings)
+    storage.set({
+      key: SETTINGS_KEY,
+      value: JSON.stringify(this.settings),
+
+      success: () => {
+        if (CONFIG.DEBUG) console.info("[Settings] 设置保存成功: " + setting)
+        this.back()
+      },
+
+      fail: () => {
+        if (CONFIG.DEBUG) console.error("[Settings] 设置保存失败")
+      }
+    })
+  },
+
+  /* 设置有关 */
+  changeTextSpeed(e) {
+    const value = e.progress !== undefined ? e.progress : e.value
+    if (value !== undefined) {
+      this.settings.textSpeed = value
+    }
+  },
+
+  changeTextSize(e) {
+    const value = e.progress !== undefined ? e.progress : e.value
+    if (value !== undefined) {
+      this.settings.textSize = value
+    }
+  },
+
+  // 阻止侧滑
+  handleSwipe() {},
+
+  // 清除Timer
+  onDestroy() {
+    if (this.timer) {
+      clearTimeout(this.timer)
+      this.timer = null
+    }
+  },
+
+  back() {
+    router.back()
+  }
+}
+</script>
+
+<style>
+.page {
+  flex-direction: column;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-color: #000000;
+}
+
+.bg-image {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.35;
+}
+
+.text-button {
+  position: absolute;
+  top: 25px;
+  width: 75px;
+  height: 35px;
+
+  font-weight: bold;
+  font-size: 18px;
+
+  text-align: center;
+  border-radius: 6px;
+
+  background-color: rgba(188, 72, 253, 0.2);
+  border: 1px solid rgb(188, 72, 253);
+  color: rgb(240, 200, 255);
+}
+
+.label-text {
+  position: absolute;
+  left: 25px;
+  font-size: 20px;
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.slider {
+  position: absolute;
+  left: 25px;
+  height: 30px;
+
+  width: 80%;
+
+  selected-color: rgb(188, 72, 253);
+  block-color: rgb(188, 72, 253);
+  color: rgb(207, 137, 248);
+}
+
+.dialogue-box {
+  position: absolute;
+  bottom: 20px;
+  left: 15px;
+  right: 15px;
+
+  height: 120px;
+
+  background-color: rgba(0, 0, 0, 0.4);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 12px;
+  display: flex;
+}
+
+.scroll-view {
+  width: 100%;
+  height: 100%;
+
+  /* 开启多行排列，允许内容向下延伸 */
+  flex-wrap: wrap;
+}
+
+.typewriter-text {
+  /* 强制占满父宽，同时锁定左侧对齐起点 */
+  width: 100%;
+
+  color: #ffffff;
+  text-align: left;
+  padding: 0;
+  margin: 0;
+}
+</style>

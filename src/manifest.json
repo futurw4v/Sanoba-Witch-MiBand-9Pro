@@ -1,0 +1,49 @@
+{
+  "package": "dev.futrw4v.sanoba_witch",
+  "name": "魔女的夜宴",
+  "versionName": "1.0.0",
+  "versionCode": 1,
+  "minPlatformVersion": 1000,
+  "icon": "/common/logo.png",
+  "deviceTypeList": [
+    "watch"
+  ],
+  "features": [
+    {
+      "name": "system.router"
+    },
+    {
+      "name": "system.storage"
+    },
+    {
+      "name": "system.prompt"
+    },
+    {
+      "name": "system.file"
+    }
+  ],
+  "config": {
+    "logLevel": "log",
+    "designWidth": "device-width"
+  },
+  "router": {
+    "entry": "pages/index",
+    "pages": {
+      "pages/index": {
+        "component": "index"
+      },
+      "pages/game": {
+        "component": "game"
+      },
+      "pages/settings": {
+        "component": "settings"
+      },
+      "pages/data": {
+        "component": "data"
+      },
+      "pages/about": {
+        "component": "about"
+      }
+    }
+  }
+}
