@@ -45,6 +45,8 @@
 
       <!-- 容器与按钮 -->
       <div class="menu-container" @click="stopClick">
+        <text class="menu-time">{{ currentTime }}</text>
+
         <text class="menu-title">菜单</text>
 
         <div class="menu-grid">
@@ -246,6 +248,7 @@ export default {
     timer: null,
     isTextComplete: false,
     showSwipeMenu: false,
+    currentTime: "00:00",
 
     // 选项有关
     currentOptions: [],
@@ -787,6 +790,12 @@ export default {
 
   handleSwipe() {
     this.showSwipeMenu = true
+
+    const now = new Date()
+    this.currentTime =
+      now.getHours().toString().padStart(2, "0") +
+      ":" +
+      now.getMinutes().toString().padStart(2, "0")
   },
 
   handleLongPress() {
@@ -940,7 +949,6 @@ export default {
   font-size: 18px;
 }
 
-/* 修改已有的 tips-overlay 确保其居中 */
 .menu-overlay {
   position: absolute;
   width: 100%;
@@ -950,6 +958,13 @@ export default {
   justify-content: center;
   z-index: 10; /* 提升层级到最前 */
   background-color: rgba(0, 0, 0, 0.6);
+}
+
+.menu-time {
+  color: #ffffff;
+  font-size: 18px;
+  text-align: center;
+  margin-bottom: 8px;
 }
 
 /* 选项 */
