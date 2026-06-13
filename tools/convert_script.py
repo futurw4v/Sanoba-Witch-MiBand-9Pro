@@ -46,6 +46,7 @@ def to_arrays(raw_data):
     output = []
     last_bg = None 
     last_ch_state = None 
+    last_title = None
     
     scenes = raw_data.get("scenes", []) if isinstance(raw_data, dict) else []
     
@@ -53,8 +54,9 @@ def to_arrays(raw_data):
         # 此处优先提取章节标题
         # 4: 章节标题 -> [4, "章节标题"]
         title = scene.get("title")
-        if title:
+        if title and title != last_title:
             output.append([4, title])
+            last_title = title
 
         # 0: Label -> [0, "label_name"]
         if "label" in scene and scene["label"]:
