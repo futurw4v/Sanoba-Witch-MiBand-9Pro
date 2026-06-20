@@ -29,7 +29,7 @@
 
 <script>
 import router from "@system.router"
-import {CONFIG} from "../../common/constants.js"
+import {DEBUG} from "../../common/constants.js"
 
 export default {
   data: {
@@ -64,7 +64,7 @@ export default {
 
     this.isNavigating = true
 
-    if (CONFIG.DEBUG) console.info("[Index] 跳转到游戏页面")
+    if (DEBUG) console.info("[Index] 跳转到游戏页面")
     router.push({uri: "/pages/game"})
 
     // 两秒后解除导航锁定，允许再次跳转
@@ -79,7 +79,7 @@ export default {
 
     this.isNavigating = true
 
-    if (CONFIG.DEBUG) console.info("[Index] 跳转到加载数据页面")
+    if (DEBUG) console.info("[Index] 跳转到加载数据页面")
     router.push({uri: "/pages/data"})
 
     this.navTimer = setTimeout(() => {
@@ -93,7 +93,7 @@ export default {
 
     this.isNavigating = true
 
-    if (CONFIG.DEBUG) console.info("[Index] 跳转到设置页面")
+    if (DEBUG) console.info("[Index] 跳转到设置页面")
     router.push({uri: "/pages/settings"})
 
     this.navTimer = setTimeout(() => {
@@ -107,7 +107,7 @@ export default {
 
     this.isNavigating = true
 
-    if (CONFIG.DEBUG) console.info("[Index] 跳转到关于页面")
+    if (DEBUG) console.info("[Index] 跳转到关于页面")
     router.push({uri: "/pages/about"})
 
     this.navTimer = setTimeout(() => {

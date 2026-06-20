@@ -46,7 +46,7 @@
 <script>
 import router from "@system.router"
 import storage from "@system.storage"
-import {CONFIG} from "../../common/constants.js"
+import {DEBUG} from "../../common/constants.js"
 
 const SETTINGS_KEY = "settings"
 
@@ -74,14 +74,14 @@ export default {
       success: (data) => {
         if (data) {
           try {
-            if (CONFIG.DEBUG) console.log("[Settings] 原始设置数据: " + data)
+            if (DEBUG) console.log("[Settings] 原始设置数据: " + data)
 
             that.settings = JSON.parse(data)
           } catch (e) {
-            if (CONFIG.DEBUG) console.error("[Settings] JSON解析出错: " + e.message)
+            if (DEBUG) console.error("[Settings] JSON解析出错: " + e.message)
           }
         } else {
-          if (CONFIG.DEBUG) console.log("[Settings] 未读取到缓存数据，使用默认设置")
+          if (DEBUG) console.log("[Settings] 未读取到缓存数据，使用默认设置")
         }
 
         this.showTypeWriterEffect()
@@ -135,12 +135,12 @@ export default {
       value: JSON.stringify(this.settings),
 
       success: () => {
-        if (CONFIG.DEBUG) console.info("[Settings] 设置保存成功: " + setting)
+        if (DEBUG) console.info("[Settings] 设置保存成功: " + setting)
         this.back()
       },
 
       fail: () => {
-        if (CONFIG.DEBUG) console.error("[Settings] 设置保存失败")
+        if (DEBUG) console.error("[Settings] 设置保存失败")
       }
     })
   },

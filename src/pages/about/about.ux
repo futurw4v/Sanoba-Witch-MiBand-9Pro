@@ -45,7 +45,7 @@
 <script>
 import router from "@system.router"
 import manifest from "../../manifest.json"
-import {CONFIG} from "../../common/constants.js"
+import {DEBUG} from "../../common/constants.js"
 
 export default {
   private: {
@@ -61,7 +61,7 @@ export default {
   },
 
   longPressBack() {
-    if (CONFIG.DEBUG) router.back()
+    if (DEBUG) router.back()
   }
 }
 </script>

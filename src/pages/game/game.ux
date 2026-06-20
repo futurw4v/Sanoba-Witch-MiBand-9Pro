@@ -72,161 +72,12 @@
 </template>
 
 <script>
+import {DEBUG, SCN_TYPE, SCN_LIST, SETTINGS_KEY} from "../../common/constants.js"
+
 import storage from "@system.storage"
 import file from "@system.file"
-import {CONFIG} from "../../common/constants.js"
 import router from "@system.router"
 import prompt from "@system.prompt"
-
-// 使用.json格式的文本似乎在实体机上读取不到剧本（就算模拟器读的到），故此处使用txt存储
-// 剧本列表
-const SCN_LIST = {
-  common: [
-    {id: "001", path: "001.共通－オナニーマスター.ks.txt"},
-    {id: "002", path: "002.共通－欠片吸収.ks.txt"},
-    {id: "003", path: "003.共通－心の穴.ks.txt"},
-    {id: "004", path: "004.共通－今後もよろしく.ks.txt"},
-    {id: "005", path: "005.共通－因幡めぐる.ks.txt"},
-    {id: "006", path: "006.共通－合コンテク.ks.txt"},
-    {id: "007", path: "007.共通－めぐるのその後.ks.txt"},
-    {id: "008", path: "008.共通－デート依頼.ks.txt"},
-    {id: "009", path: "009.共通－休日デート.ks.txt"},
-    {id: "010", path: "010.共通－転入生.ks.txt"},
-    {id: "011", path: "011.共通－先輩の悩み.ks.txt"},
-    {id: "012", path: "012.共通－魔女.ks.txt"},
-    {id: "013", path: "013.共通－キマシタワ.ks.txt"},
-    {id: "014", path: "014.共通－失恋.ks.txt"},
-    {id: "015", path: "015.共通－釣り.ks.txt"},
-    {id: "016", path: "016.共通－廃部.ks.txt"},
-    {id: "017", path: "017.共通－勉強会.ks.txt"},
-    {id: "018", path: "018.共通－パーティー準備.ks.txt"},
-    {id: "019", path: "019.共通－パーティ.ks.txt"},
-    {
-      id: "020_meguru",
-
-      path: "020.共通－パーティーめぐる.ks.txt"
-    },
-    {id: "020_tsumugi", path: "020.共通－パーティー紬.ks.txt"},
-    {id: "020_nene", path: "020.共通－パーティ寧々.ks.txt"},
-    {id: "020_akogare", path: "020.共通－パーティ憧子.ks.txt"}
-  ],
-  nene: [
-    {id: "101", path: "101.寧々－ラーメン.ks.txt"},
-    {id: "102", path: "102.寧々－お見舞い.ks.txt"},
-    {id: "103", path: "103.寧々－告白.ks.txt"},
-    {id: "104", path: "104.寧々－初体験.ks.txt"},
-    {id: "105", path: "105.寧々－報告会.ks.txt"},
-    {id: "106", path: "106.寧々－急転.ks.txt"},
-    {id: "107", path: "107.寧々－元鞘.ks.txt"},
-    {id: "108", path: "108.寧々－決断.ks.txt"},
-    {id: "109", path: "109_β.寧々－お別れデート.ks.txt"},
-    {id: "110", path: "110.寧々－Restart（寧々編）.ks.txt"},
-    {id: "111", path: "111.寧々－Restart（本編）.ks.txt"},
-    {
-      id: "112",
-
-      path: "112.寧々－Restart（２週目Ｈ）.ks.txt"
-    },
-    {
-      id: "113",
-
-      path: "113.寧々－Restart（再び部活）.ks.txt"
-    },
-    {
-      id: "114",
-
-      path: "114.寧々－Restart（変わりゆく日々）.ks.txt"
-    },
-    {
-      id: "115",
-
-      path: "115.寧々－Restart（二度目の本番）.ks.txt"
-    },
-    {id: "116", path: "116.寧々－エピローグ.ks.txt"},
-    {id: "117", path: "117.寧々－アフター.ks.txt"}
-  ],
-  meguru: [
-    {id: "201", path: "201.めぐる－記念撮影.ks.txt"},
-    {id: "202", path: "202.めぐる－同士.ks.txt"},
-    {id: "203", path: "203.めぐる－仲良し.ks.txt"},
-    {id: "204", path: "204.めぐる－親友.ks.txt"},
-    {id: "205", path: "205.めぐる－距離感.ks.txt"},
-    {id: "206", path: "206.めぐる－解放.ks.txt"},
-    {id: "207", path: "207.めぐる－嫉妬.ks.txt"},
-    {id: "208", path: "208.めぐる－抱擁.ks.txt"},
-    {id: "209", path: "209.めぐる－不器用な二人.ks.txt"},
-    {id: "210", path: "210.めぐる－甘酸っぱさ.ks.txt"},
-    {id: "211", path: "211.めぐる－ラブラブ.ks.txt"},
-    {id: "212", path: "212.めぐる－恋のサイクル.ks.txt"},
-    {id: "213", path: "213.めぐる－罪悪感.ks.txt"},
-    {id: "214", path: "214.めぐる－埋め合う二人.ks.txt"},
-    {id: "215", path: "215.めぐる－互いの弱点.ks.txt"},
-    {id: "216", path: "216.めぐる－伝えきれない想い.ks.txt"},
-    {id: "217", path: "217.めぐる－自分自身の魔法.ks.txt"},
-    {id: "218", path: "218.めぐる－エピローグ.ks.txt"},
-    {id: "219", path: "219.めぐる－アフター.ks.txt"}
-  ],
-  tsumugi: [
-    {id: "301", path: "301.紬－もう１人のアルプ.ks.txt"},
-    {id: "302", path: "302.紬－代償の理由.ks.txt"},
-    {id: "303", path: "303.紬－心の穴、再び.ks.txt"},
-    {id: "304", path: "304.紬－スイート間接キス.ks.txt"},
-    {id: "305", path: "305.紬－手を繋いで歩こう.ks.txt"},
-    {id: "306", path: "306.紬－caught a cold.ks.txt"},
-    {id: "307", path: "307.紬－ご褒美の期限.ks.txt"},
-    {id: "308", path: "308.紬－空回り.ks.txt"},
-    {id: "309", path: "309.紬－告白の決意.ks.txt"},
-    {id: "310", path: "310.紬－契約代行.ks.txt"},
-    {id: "311", path: "311.紬－紬と初デート.ks.txt"},
-    {id: "312", path: "312.紬－シュウジくん.ks.txt"},
-    {id: "313", path: "313.紬－いつでも一緒.ks.txt"},
-    {id: "314", path: "314.紬－疑惑.ks.txt"},
-    {id: "315", path: "315.紬－父の様子.ks.txt"},
-    {id: "316", path: "316.紬－その子犬は？.ks.txt"},
-    {id: "317", path: "317.紬－新たな被害者.ks.txt"},
-    {id: "318", path: "318.紬－出来損ないのアルプ.ks.txt"},
-    {id: "319", path: "319.紬－君は大切な友達.ks.txt"},
-    {id: "320", path: "320.紬－紬エピローグ.ks.txt"},
-    {id: "321", path: "321.紬－紬アフター.ks.txt"}
-  ],
-  akogare: [
-    {id: "401", path: "401.憧子－初デート.ks.txt"},
-    {id: "402", path: "402.憧子－バスケ部.ks.txt"},
-    {id: "403", path: "403.憧子－恋の勉強.ks.txt"},
-    {id: "404", path: "404.憧子－告白.ks.txt"},
-    {id: "405", path: "405.憧子－初体験.ks.txt"},
-    {id: "406", path: "406.憧子－謎.ks.txt"},
-    {id: "407", path: "407.憧子－記憶.ks.txt"},
-    {id: "408", path: "408.憧子－突然の死.ks.txt"},
-    {id: "409", path: "409.憧子－復活.ks.txt"},
-    {id: "410", path: "410.憧子－その後.ks.txt"},
-    {id: "411", path: "411.憧子－エピローグ.ks.txt"},
-    {id: "412", path: "412.憧子－アフター.ks.txt"}
-  ],
-  wakana: [
-    {id: "500", path: "500.和奏－分岐.ks.txt"},
-    {id: "501", path: "501.和奏－ハプニング.ks.txt"},
-    {id: "502", path: "502.和奏－意識する日々.ks.txt"},
-    {id: "503", path: "503.和奏－セカンドキス.ks.txt"},
-    {id: "504", path: "504.和奏－ドギマギな日々.ks.txt"},
-    {id: "505", path: "505.和奏－ライブ本番.ks.txt"},
-    {id: "506", path: "506.和奏－レロレロ.ks.txt"},
-    {id: "507", path: "507.和奏－エピローグ的な.ks.txt"},
-    {id: "508", path: "508.和奏－アフター.ks.txt"}
-  ]
-}
-
-// 剧本节点类型
-const TYPE = {
-  NODE: 0, // 标签/跳转点 [0, "label_name"]
-  BG: 1, // 背景切换 [1, "bg_name"]
-  DIALOGUE: 2, // 对话 [2, "说话人", "内容", [立绘列表]]
-  SELECT: 3, // 选项 [3, [["文字", "跳转", "表达式"]]]
-  TITLE: 4, // 章节标题 [4, "章节标题"]
-  JUMP: 5 // 跳转 [5, "label_name"]
-}
-
-const SETTINGS_KEY = "settings"
 
 export default {
   private: {
@@ -274,9 +125,9 @@ export default {
             const parsed = JSON.parse(data)
             this.settings.textSpeed = parsed.textSpeed
             this.settings.textSize = parsed.textSize
-            if (CONFIG.DEBUG) console.log("[Game/System] 设置加载成功")
+            if (DEBUG) console.log("[Game/System] 设置加载成功")
           } catch (e) {
-            if (CONFIG.DEBUG) console.error("[Game/System] 解析设置失败")
+            if (DEBUG) console.error("[Game/System] 解析设置失败")
           }
         }
       }
@@ -288,7 +139,7 @@ export default {
     const stateToLoad = this.$app.$def.globalGameState
 
     if (stateToLoad) {
-      if (CONFIG.DEBUG) console.log("[Game/IO] 恢复存档状态:", stateToLoad)
+      if (DEBUG) console.log("[Game/IO] 恢复存档状态:", stateToLoad)
 
       // 读取存档内容
       const targetScnId = stateToLoad.currentScnId || "001"
@@ -334,7 +185,7 @@ export default {
       const node = this.scriptData[this.currentLineIndex]
       const type = node[0]
 
-      if (type === TYPE.SELECT) {
+      if (type === SCN_TYPE.SELECT) {
         // 停止前，同步最后一句对话内容
         if (lastDialogueNode) {
           this.currentSpeaker = lastDialogueNode[1] || ""
@@ -349,24 +200,24 @@ export default {
 
         // 渲染文本为最后一行对话（可选，让画面不至于太突兀）
         this.isTextComplete = true
-        if (CONFIG.DEBUG) console.log("[Game/Engine] 快进停止于选项")
+        if (DEBUG) console.log("[Game/Engine] 快进停止于选项")
         return // 退出函数，等待玩家操作
       }
 
       // 抓取文本
-      if (type === TYPE.DIALOGUE) {
+      if (type === SCN_TYPE.DIALOGUE) {
         lastDialogueNode = node
       }
 
       // 更新背景防止错乱
-      if (type === TYPE.BG) {
+      if (type === SCN_TYPE.BG) {
         const bg = node[1]
         this.currentBg = bg
-        if (CONFIG.DEBUG) console.log("[Game/Engine] 背景更新：" + bg)
+        if (DEBUG) console.log("[Game/Engine] 背景更新：" + bg)
       }
 
       // 更新章节名称
-      if (type === TYPE.TITLE) {
+      if (type === SCN_TYPE.TITLE) {
         this.currentChapterName = node[1]
       }
 
@@ -449,19 +300,19 @@ export default {
       this.currentLineIndex = parseInt(startIndex, 10)
 
       if (savedBg) {
-        if (CONFIG.DEBUG) console.log("[Game/IO] 应用存档背景: " + savedBg)
+        if (DEBUG) console.log("[Game/IO] 应用存档背景: " + savedBg)
         this.currentBg = savedBg
       }
 
       this.isLoading = false
 
-      if (CONFIG.DEBUG) console.log(`[Game/IO] ${id} 加载成功，startIndex: ${startIndex}`)
+      if (DEBUG) console.log(`[Game/IO] ${id} 加载成功，startIndex: ${startIndex}`)
 
       this.showLine()
     } catch (error) {
       this.isLoading = false
       this.displayText = "错误: " + error.message
-      if (CONFIG.DEBUG) console.error("[Game/IO] 场景加载失败: " + error.message)
+      if (DEBUG) console.error("[Game/IO] 场景加载失败: " + error.message)
     }
   },
 
@@ -489,18 +340,18 @@ export default {
     const next = this.getNextScn(this.currentScnId, this.userSelectedRoute || "common")
 
     if (next) {
-      if (CONFIG.DEBUG) console.log(`[Game/Engine] 准备进入下一章节: ${next.name}`)
+      if (DEBUG) console.log(`[Game/Engine] 准备进入下一章节: ${next.name}`)
       this.currentScnId = next.id
       this.loadScenario(next.id)
     } else {
-      if (CONFIG.DEBUG) console.warn("[Game/Engine] 未找到后续章节，结束")
+      if (DEBUG) console.warn("[Game/Engine] 未找到后续章节，结束")
       prompt.showToast({message: "游戏结束"})
     }
   },
 
   showLine() {
     if (!this.scriptData || this.scriptData.length === 0) {
-      if (CONFIG.DEBUG) console.warn("[Game/Engine] 等待剧本加载...")
+      if (DEBUG) console.warn("[Game/Engine] 等待剧本加载...")
       return
     }
 
@@ -519,21 +370,21 @@ export default {
     const type = node[0]
 
     switch (type) {
-      case TYPE.NODE:
+      case SCN_TYPE.NODE:
         // 标签，记录日志并自动跳到下一行
-        if (CONFIG.DEBUG) console.log("[Game/Engine] 进入节点: " + node[1])
+        if (DEBUG) console.log("[Game/Engine] 进入节点: " + node[1])
         this.currentLineIndex++
         this.showLine()
         break
 
-      case TYPE.BG:
+      case SCN_TYPE.BG:
         // 切换背景并跳到下一行
         this.currentBg = node[1]
         this.currentLineIndex++
         this.showLine()
         break
 
-      case TYPE.DIALOGUE:
+      case SCN_TYPE.DIALOGUE:
         // 对话更新 [2, "说话人", "内容", [立绘列表（可选）]]
         this.currentSpeaker = node[1] || ""
         this.fullText = node[2] || ""
@@ -550,17 +401,17 @@ export default {
         this.showTypeWriterEffect()
         break
 
-      case TYPE.SELECT:
+      case SCN_TYPE.SELECT:
         // 选项：[3, [["文字", "跳转", "表达式"]]]
         this.currentOptions = node[1]
         this.showOptions = true
         break
 
-      case TYPE.TITLE:
+      case SCN_TYPE.TITLE:
         // 章节标题 [4, "章节标题"]
         this.currentChapterName = node[1]
 
-        if (CONFIG.DEBUG) {
+        if (DEBUG) {
           console.log("[Game/Engine] 读取到新章节名称: " + this.currentChapterName)
 
           prompt.showToast({
@@ -573,19 +424,19 @@ export default {
         this.showLine()
         break
 
-      case TYPE.JUMP:
+      case SCN_TYPE.JUMP:
         // 跳转 [5, "label_name"]
         const targetLabel = node[1]
         const jumpIndex = this.scriptData.findIndex(
-          (item) => item[0] === TYPE.NODE && item[1] === targetLabel
+          (item) => item[0] === SCN_TYPE.NODE && item[1] === targetLabel
         )
 
         if (jumpIndex !== -1) {
           this.currentLineIndex = jumpIndex
-          if (CONFIG.DEBUG) console.info("[Game/Engine] 跳转至节点：" + targetLabel)
+          if (DEBUG) console.info("[Game/Engine] 跳转至节点：" + targetLabel)
           this.showLine()
         } else {
-          if (CONFIG.DEBUG) console.error("[Game/Engine] 跳转目标未找到：" + targetLabel)
+          if (DEBUG) console.error("[Game/Engine] 跳转目标未找到：" + targetLabel)
           this.currentLineIndex++
           this.showLine()
         }
@@ -628,7 +479,7 @@ export default {
   // 解析表达式
   runExp(expStr) {
     if (!expStr) return
-    if (CONFIG.DEBUG) console.log("[Game/System] 执行表达式: " + expStr)
+    if (DEBUG) console.log("[Game/System] 执行表达式: " + expStr)
 
     // 按照逗号拆分多条指令 (如 "f.sel_flag=0, f.wak_flag++")
     const parts = expStr.split(",")
@@ -659,7 +510,7 @@ export default {
       }
     })
 
-    if (CONFIG.DEBUG) console.log("[Game/System] 同步后变量库: ", JSON.stringify(this.gameFlags))
+    if (DEBUG) console.log("[Game/System] 同步后变量库: ", JSON.stringify(this.gameFlags))
   },
 
   // 通过gameFlag确定进入哪条线
@@ -678,11 +529,11 @@ export default {
 
     // 返回分数最高的角色ID，如果最高分是0，就是单身
     if (flagScores[0].score === 0) {
-      if (CONFIG.DEBUG) console.log("[Game/Engine] 好感度均为0，单身")
+      if (DEBUG) console.log("[Game/Engine] 好感度均为0，单身")
       return null
     }
 
-    if (CONFIG.DEBUG) console.log(`[Game/Engine] 进入 ${flagScores[0].id} 线`)
+    if (DEBUG) console.log(`[Game/Engine] 进入 ${flagScores[0].id} 线`)
     return flagScores[0].id
   },
 
@@ -751,7 +602,7 @@ export default {
         this.currentLineIndex++
         this.showLine()
       } else {
-        if (CONFIG.DEBUG) console.info("[Game/Engine] 当前章节结束，尝试进入下一章")
+        if (DEBUG) console.info("[Game/Engine] 当前章节结束，尝试进入下一章")
         this.goToNextScenario()
       }
     }
@@ -765,7 +616,7 @@ export default {
     }
 
     const targetIndex = this.scriptData.findIndex(
-      (item) => item[0] === TYPE.NODE && item[1] === targetLabel
+      (item) => item[0] === SCN_TYPE.NODE && item[1] === targetLabel
     )
 
     if (targetIndex !== -1) {
@@ -777,7 +628,7 @@ export default {
         this.showLine()
       }
     } else {
-      if (CONFIG.DEBUG) console.error("[Game/Engine] 未找到选项跳转标签: " + targetLabel)
+      if (DEBUG) console.error("[Game/Engine] 未找到选项跳转标签: " + targetLabel)
       prompt.showToast({message: `未找到标签: ${targetLabel}`})
       this.showOptions = true
     }
@@ -819,8 +670,8 @@ export default {
 
   handleLongPress() {
     // 便于调试触发菜单
-    if (CONFIG.DEBUG) {
-      if (CONFIG.DEBUG) console.log("[Game/UI] 触发长按")
+    if (DEBUG) {
+      if (DEBUG) console.log("[Game/UI] 触发长按")
       this.handleSwipe()
     }
   },

@@ -32,11 +32,11 @@
 </template>
 
 <script>
+import {SAVE_KEY} from "../../common/constants.js"
+
 import storage from "@system.storage"
 import router from "@system.router"
 import prompt from "@system.prompt"
-
-const SAVE_KEY = "user_save_data"
 
 export default {
   // 从路由参数接收当前游戏状态（用于保存时使用）
