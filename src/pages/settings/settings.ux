@@ -1,6 +1,6 @@
 <template>
   <div class="page" @swipe="handleSwipe">
-    <image class="bg-image" src="/common/title_bg.png"></image>
+    <image class="bg-image" src="/common/title_bg.jpg"></image>
 
     <!-- 顶部按钮 -->
     <text class="text-button" style="left: 30px" @click="saveSettings">保存</text>

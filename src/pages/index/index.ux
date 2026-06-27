@@ -1,7 +1,7 @@
 <template>
   <div @swipe="handleSwipe">
     <!-- 背景 -->
-    <image class="bg-image" src="/common/title_bg.png"></image>
+    <image class="bg-image" src="/common/title_bg.jpg"></image>
 
     <!-- 按钮（手环端貌似阉割了文字阴影 所以此处使用了重叠实现阴影） -->
     <stack class="stack-button" style="top: 215px" @click="routeGame">

@@ -1,6 +1,6 @@
 <template>
   <div class="page" @swipe="swipeBack" @longpress="longPressBack">
-    <image class="bg-image" src="/common/title_bg.png"></image>
+    <image class="bg-image" src="/common/title_bg.jpg"></image>
 
     <div class="header">
       <text class="title">关于</text>
